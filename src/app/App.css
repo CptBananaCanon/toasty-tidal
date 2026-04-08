@@ -1,0 +1,207 @@
+/* ── Reset ─────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* ── Variables ─────────────────────────────────────── */
+:root {
+  --color-bg: #111;
+  --color-surface: #1a1a1a;
+  --color-surface-hover: #222;
+  --color-border: #2a2a2a;
+  --color-text: #e8e8e8;
+  --color-text-muted: #888;
+  --color-accent: #00b4d8;
+  --color-selected: #1c3a4a;
+
+  --header-height: 52px;
+  --player-height: 72px;
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 14px;
+}
+
+/* ── App shell ─────────────────────────────────────── */
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* ── Header ────────────────────────────────────────── */
+.header {
+  height: var(--header-height);
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+.header__logo {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--color-accent);
+}
+
+/* ── Main content ──────────────────────────────────── */
+.main-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+}
+
+/* ── Search input ──────────────────────────────────── */
+.search-input-wrapper {
+  margin-bottom: 16px;
+}
+
+.search-input {
+  width: 100%;
+  max-width: 540px;
+  padding: 10px 14px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  color: var(--color-text);
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.search-input:focus {
+  border-color: var(--color-accent);
+}
+
+/* ── Search results ────────────────────────────────── */
+.search-results {
+  list-style: none;
+  max-width: 780px;
+}
+
+/* ── Result item ───────────────────────────────────── */
+.result-item {
+  display: grid;
+  grid-template-columns: 1fr 160px 200px 56px;
+  gap: 8px;
+  align-items: center;
+  padding: 10px 14px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.result-item:hover {
+  background: var(--color-surface-hover);
+}
+
+.result-item--selected {
+  background: var(--color-selected);
+}
+
+.result-item__title {
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.result-item__artist,
+.result-item__album {
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.result-item__duration {
+  color: var(--color-text-muted);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Player bar ────────────────────────────────────── */
+.player-bar {
+  height: var(--player-height);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  background: var(--color-surface);
+  border-top: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+.player-bar__track-info {
+  display: flex;
+  gap: 12px;
+  align-items: baseline;
+  min-width: 0;
+}
+
+.player-bar__title {
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.player-bar__artist {
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.player-bar__duration {
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+}
+
+.player-bar__empty {
+  color: var(--color-text-muted);
+}
+
+.player-bar__controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+/* ── Player buttons ────────────────────────────────── */
+.player-btn {
+  background: none;
+  border: none;
+  color: var(--color-text);
+  font-size: 18px;
+  cursor: pointer;
+  padding: 6px 10px;
+  border-radius: 4px;
+  transition: background 0.1s, color 0.1s;
+  line-height: 1;
+}
+
+.player-btn:hover:not(:disabled) {
+  background: var(--color-surface-hover);
+  color: var(--color-accent);
+}
+
+.player-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.player-btn--primary {
+  font-size: 22px;
+}

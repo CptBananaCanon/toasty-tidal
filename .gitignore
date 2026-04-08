@@ -2,3 +2,10 @@
 .env.local
 .env
 .env.*.local
+
+# Rust
+src-tauri/target/
+
+# Node
+node_modules/
+dist/
