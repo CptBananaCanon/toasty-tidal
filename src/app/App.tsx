@@ -4,11 +4,13 @@ import { SearchResults } from '../features/search/SearchResults';
 import { PlayerBar } from '../features/player/PlayerBar';
 import { useSearch } from '../features/search/useSearch';
 import { usePlayer } from '../features/player/usePlayer';
+import { useAuth } from '../features/auth/useAuth';
 import { Track } from '../types';
 import './App.css';
 
 export function App() {
-  const { query, results, setQuery } = useSearch();
+  const auth = useAuth();
+  const { query, results, isLoading, error, source, setQuery } = useSearch(auth.isAuthenticated);
   const { currentTrack, isPlaying, play, togglePlayPause, playPrevious, playNext } =
     usePlayer(results);
 
@@ -18,11 +20,15 @@ export function App() {
 
   return (
     <div className="app">
-      <Header />
+      <Header auth={auth} />
       <main className="main-content">
         <SearchInput value={query} onChange={setQuery} />
         <SearchResults
+          query={query}
           results={results}
+          isLoading={isLoading}
+          error={error}
+          source={source}
           selectedId={currentTrack?.id ?? null}
           onSelect={handleSelect}
         />

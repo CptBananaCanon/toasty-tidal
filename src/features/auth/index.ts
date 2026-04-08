@@ -1,2 +1,4 @@
-// Auth feature — scaffold only (Milestone 2)
-// Will implement TIDAL PKCE OAuth flow when integration begins.
+export { useAuth } from './useAuth';
+export type { AuthState, AuthStatus } from './useAuth';
+export { AuthButton } from './AuthButton';
+export { startLogin, handleCallback, restoreSession, signOut } from './tidalAuth';

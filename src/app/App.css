@@ -43,6 +43,7 @@ body {
   height: var(--header-height);
   display: flex;
   align-items: center;
+  justify-content: space-between;
   padding: 0 20px;
   background: var(--color-surface);
   border-bottom: 1px solid var(--color-border);
@@ -54,6 +55,63 @@ body {
   font-weight: 700;
   letter-spacing: 0.12em;
   color: var(--color-accent);
+}
+
+/* ── Auth controls ─────────────────────────────────── */
+.auth-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.auth-label {
+  font-size: 12px;
+}
+
+.auth-label--muted {
+  color: var(--color-text-muted);
+}
+
+.auth-label--ok {
+  color: var(--color-accent);
+}
+
+.auth-label--error {
+  color: #e05c5c;
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.auth-btn {
+  border: none;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 6px 14px;
+  transition: background 0.15s, color 0.15s;
+}
+
+.auth-btn--primary {
+  background: var(--color-accent);
+  color: #000;
+}
+
+.auth-btn--primary:hover {
+  background: #00c9f0;
+}
+
+.auth-btn--ghost {
+  background: transparent;
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
+}
+
+.auth-btn--ghost:hover {
+  color: var(--color-text);
+  border-color: var(--color-text-muted);
 }
 
 /* ── Main content ──────────────────────────────────── */
@@ -83,6 +141,31 @@ body {
 
 .search-input:focus {
   border-color: var(--color-accent);
+}
+
+/* ── Search status messages ────────────────────────── */
+.search-status {
+  max-width: 540px;
+  padding: 10px 0;
+  font-size: 13px;
+}
+
+.search-status--loading {
+  color: var(--color-text-muted);
+}
+
+.search-status--empty {
+  color: var(--color-text-muted);
+}
+
+.search-status--error {
+  color: #e05c5c;
+}
+
+.search-status--mock {
+  color: var(--color-text-muted);
+  margin-bottom: 8px;
+  font-style: italic;
 }
 
 /* ── Search results ────────────────────────────────── */
