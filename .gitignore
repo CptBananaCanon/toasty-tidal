@@ -10,3 +10,21 @@ src-tauri/target/
 node_modules/
 dist/
 .env.local
+
+# Tauri build artifacts
+src-tauri/target/
+src-tauri/.cargo/
+
+# Vite / build outputs
+dist-ssr/
+*.local
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db

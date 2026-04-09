@@ -7,14 +7,23 @@
 
 /* ── Variables ─────────────────────────────────────── */
 :root {
-  --color-bg: #111;
-  --color-surface: #1a1a1a;
-  --color-surface-hover: #222;
-  --color-border: #2a2a2a;
-  --color-text: #e8e8e8;
-  --color-text-muted: #888;
-  --color-accent: #00b4d8;
-  --color-selected: #1c3a4a;
+  /* Synthwave theme */
+  --bg-main:          #0b0b14;
+  --bg-surface:       #16142a;
+  --accent-primary:   #F249E7;
+  --accent-secondary: #772B8C;
+  --text-main:        #e6e6f0;
+  --text-muted:       #9aa0b5;
+
+  /* Legacy aliases — used throughout component styles */
+  --color-bg:           var(--bg-main);
+  --color-surface:      var(--bg-surface);
+  --color-surface-hover:#221b3d;
+  --color-border:       #2a2a45;
+  --color-text:         var(--text-main);
+  --color-text-muted:   var(--text-muted);
+  --color-accent:       var(--accent-primary);
+  --color-selected:     #34184a;
 
   --header-height: 52px;
   --player-height: 72px;
@@ -27,7 +36,7 @@ html, body, #root {
 body {
   background: var(--color-bg);
   color: var(--color-text);
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
   font-size: 14px;
 }
 
@@ -45,16 +54,18 @@ body {
   align-items: center;
   justify-content: space-between;
   padding: 0 20px;
-  background: var(--color-surface);
+  background: linear-gradient(180deg, #1a1630 0%, var(--color-surface) 100%);
   border-bottom: 1px solid var(--color-border);
   flex-shrink: 0;
 }
 
 .header__logo {
+  font-family: 'Orbitron', sans-serif;
   font-size: 18px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
+  font-weight: 600;
+  letter-spacing: 0.18em;
   color: var(--color-accent);
+  text-shadow: 0 0 8px rgba(242, 73, 231, 0.6);
 }
 
 /* ── Auth controls ─────────────────────────────────── */
@@ -100,7 +111,7 @@ body {
 }
 
 .auth-btn--primary:hover {
-  background: #00c9f0;
+  background: var(--accent-secondary);
 }
 
 .auth-btn--ghost {
@@ -141,6 +152,7 @@ body {
 
 .search-input:focus {
   border-color: var(--color-accent);
+  box-shadow: 0 0 0 2px rgba(242, 73, 231, 0.25), 0 0 12px rgba(242, 73, 231, 0.15);
 }
 
 /* ── Search status messages ────────────────────────── */
@@ -188,10 +200,12 @@ body {
 
 .result-item:hover {
   background: var(--color-surface-hover);
+  box-shadow: inset 0 0 0 1px rgba(242, 73, 231, 0.15);
 }
 
 .result-item--selected {
   background: var(--color-selected);
+  box-shadow: inset 0 0 12px rgba(242, 73, 231, 0.2);
 }
 
 .result-item__title {

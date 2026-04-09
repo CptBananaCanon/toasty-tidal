@@ -8,7 +8,7 @@ interface Props {
 export function Header({ auth }: Props) {
   return (
     <header className="header">
-      <span className="header__logo">TIDAL</span>
+      <span className="header__logo">TOASTY</span>
       <AuthButton
         status={auth.status}
         error={auth.error}

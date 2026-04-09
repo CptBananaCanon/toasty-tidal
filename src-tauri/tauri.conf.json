@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "tidal-tauri-client",
+  "productName": "Toasty",
   "version": "0.1.0",
-  "identifier": "com.tidal.client",
+  "identifier": "com.toasty.app",
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:1420",
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "TIDAL",
+        "title": "Toasty",
         "width": 1024,
         "height": 700
       }
