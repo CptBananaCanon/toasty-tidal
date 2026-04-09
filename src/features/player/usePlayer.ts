@@ -4,36 +4,46 @@ import { Track } from '../../types';
 export interface PlayerState {
   currentTrack: Track | null;
   isPlaying: boolean;
-  play: (track: Track) => void;
+  play: (track: Track, queue: Track[]) => void;
   togglePlayPause: () => void;
   playPrevious: () => void;
   playNext: () => void;
 }
 
-export function usePlayer(queue: Track[] = []): PlayerState {
-  const [currentTrack, setCurrentTrack] = useState<Track | null>(null);
+export function usePlayer(): PlayerState {
+  const [queue, setQueue] = useState<Track[]>([]);
+  const [currentIndex, setCurrentIndex] = useState<number>(-1);
   const [isPlaying, setIsPlaying] = useState(false);
 
-  function play(track: Track) {
-    setCurrentTrack(track);
+  const currentTrack = queue[currentIndex] ?? null;
+
+  function play(track: Track, incomingQueue: Track[]) {
+    const idx = incomingQueue.findIndex((t) => t.id === track.id);
+    if (idx !== -1) {
+      setQueue(incomingQueue);
+      setCurrentIndex(idx);
+    } else {
+      setQueue([track]);
+      setCurrentIndex(0);
+    }
     setIsPlaying(true);
   }
 
   function togglePlayPause() {
-    if (!currentTrack) return;
+    if (currentIndex === -1) return;
     setIsPlaying((prev) => !prev);
   }
 
   function playPrevious() {
-    if (!currentTrack || queue.length === 0) return;
-    const idx = queue.findIndex((t) => t.id === currentTrack.id);
-    if (idx > 0) play(queue[idx - 1]);
+    if (currentIndex <= 0) return;
+    setCurrentIndex((i) => i - 1);
+    setIsPlaying(true);
   }
 
   function playNext() {
-    if (!currentTrack || queue.length === 0) return;
-    const idx = queue.findIndex((t) => t.id === currentTrack.id);
-    if (idx !== -1 && idx < queue.length - 1) play(queue[idx + 1]);
+    if (currentIndex === -1 || currentIndex >= queue.length - 1) return;
+    setCurrentIndex((i) => i + 1);
+    setIsPlaying(true);
   }
 
   return { currentTrack, isPlaying, play, togglePlayPause, playPrevious, playNext };

@@ -12,10 +12,10 @@ export function App() {
   const auth = useAuth();
   const { query, results, isLoading, error, source, setQuery } = useSearch(auth.isAuthenticated);
   const { currentTrack, isPlaying, play, togglePlayPause, playPrevious, playNext } =
-    usePlayer(results);
+    usePlayer();
 
   function handleSelect(track: Track) {
-    play(track);
+    play(track, results);
   }
 
   return (
