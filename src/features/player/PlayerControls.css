@@ -1,0 +1,147 @@
+/* =====================================================================
+   Boombox Controls — 1980s cassette deck aesthetic
+   No border-radius. No transitions. Hard plastic buttons.
+   ===================================================================== */
+
+/* ── Outer panel ────────────────────────────────────────────────────── */
+/* Simulates the dark ABS plastic body section of a boombox */
+.boombox-panel {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 8px 10px;
+
+  background: #161410;
+
+  /* Panel edges: top/left catch light, bottom/right recede into body */
+  border-top:    2px solid #2e2a24;
+  border-left:   2px solid #2e2a24;
+  border-right:  2px solid #080604;
+  border-bottom: 2px solid #080604;
+
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 3px 8px rgba(0, 0, 0, 0.7);
+}
+
+/* ── Base button ────────────────────────────────────────────────────── */
+/* Aged warm-grey ABS plastic. Perfectly rectangular, hard corners.    */
+.boombox-btn {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+
+  width:  54px;
+  height: 36px;
+  padding: 0;
+
+  border: none;
+  border-radius: 0;          /* zero — non-negotiable */
+  cursor: pointer;
+
+  background: #c0b8a8;
+  color: #1a1408;
+
+  /* Outer gap: dark line between button and panel (like real hardware) */
+  outline: 1px solid #2a2010;
+  outline-offset: 0;
+
+  /* Raised bevel — 3-layer box-shadow stack */
+  box-shadow:
+    inset  1px  1px 0px #ddd4be,    /* top-left light edge  */
+    inset -1px -1px 0px #706050,    /* bottom-right dark edge */
+    2px 2px 0px #0a0804;            /* drop shadow (simulates physical depth) */
+
+  /* SNAP — no smooth transitions anywhere */
+  transition: none;
+}
+
+.boombox-btn:disabled {
+  opacity: 0.38;
+  cursor: default;
+}
+
+/* ── Active state (latching: Play stays down, Pause stays down) ─────── */
+/* Bevel inverts + button physically shifts 1px right+down = "sunk in" */
+.boombox-btn--active {
+  background: #a8a090;
+  color: #0a0800;
+
+  outline: 1px solid #1a1008;
+
+  box-shadow:
+    inset  1px  1px 0px #48403a,    /* top-left NOW DARK */
+    inset -1px -1px 0px #cec4b0,    /* bottom-right NOW LIGHT */
+    inset  2px  2px 5px rgba(0, 0, 0, 0.40); /* depression shadow */
+
+  transform: translate(1px, 1px);
+}
+
+/* ── Momentary press (prev, next, stop — not latching) ──────────────── */
+/* Applies while mouse is held. Same inversion as active, no persistence */
+.boombox-btn:not(.boombox-btn--active):not(:disabled):active {
+  background: #a8a090;
+  outline: 1px solid #1a1008;
+
+  box-shadow:
+    inset  1px  1px 0px #48403a,
+    inset -1px -1px 0px #cec4b0,
+    inset  2px  2px 5px rgba(0, 0, 0, 0.40);
+
+  transform: translate(1px, 1px);
+}
+
+/* ── Icon glyph ─────────────────────────────────────────────────────── */
+.boombox-btn__icon {
+  display: block;
+  font-size: 13px;
+  line-height: 1;
+  /* Engraved look: light shadow above, dark below */
+  text-shadow:
+     0  1px 0 rgba(255, 255, 255, 0.38),
+     0 -1px 0 rgba(0, 0, 0, 0.28);
+}
+
+/* ── Mode buttons (shuffle / repeat) — narrower than transport ───────── */
+.boombox-btn--mode {
+  width: 40px;
+}
+
+/* ── Repeat-one badge: small "1" overlaid on the repeat icon ─────────── */
+.boombox-btn__badge {
+  position: absolute;
+  top: 3px;
+  right: 4px;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 8px;
+  font-weight: 700;
+  line-height: 1;
+  color: #1a1408;
+}
+
+/* ── Stop button: slightly darker plastic — distinguishes from others ── */
+.boombox-btn--stop {
+  background: #b0a898;
+}
+.boombox-btn--stop:not(:disabled):active {
+  background: #9e9688;
+}
+
+/* ── Vertical divider: machined groove between button groups ─────────── */
+.boombox-divider {
+  flex-shrink: 0;
+  width: 2px;
+  height: 32px;
+  margin: 0 5px;
+  /* Engraved slot: dark left wall, light right wall */
+  background: linear-gradient(
+    to right,
+    #080604 0%,
+    #080604 50%,
+    #2e2a24 50%,
+    #2e2a24 100%
+  );
+}

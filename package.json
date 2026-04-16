@@ -13,6 +13,9 @@
     "@tauri-apps/api": "^2.0.0",
     "@tauri-apps/plugin-deep-link": "^2.0.0",
     "@tauri-apps/plugin-shell": "^2.0.0",
+    "@tidal-music/auth": "^1.6.0",
+    "@tidal-music/event-producer": "^2.4.0",
+    "@tidal-music/player": "^0.16.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },

@@ -5,12 +5,19 @@ import { PlayerBar } from '../features/player/PlayerBar';
 import { useSearch } from '../features/search/useSearch';
 import { usePlayer } from '../features/player/usePlayer';
 import { useAuth } from '../features/auth/useAuth';
+import { initTidalPlayer } from '../lib/tidalPlayer';
 import { Track } from '../types';
 import './App.css';
 
 export function App() {
   const [crtEnabled, setCrtEnabled] = useState(true);
   const auth = useAuth();
+
+  // Seed the SDK init promise as early as possible so it is ready
+  // by the time the first auth token is available.
+  useEffect(() => {
+    initTidalPlayer().catch(console.error);
+  }, []);
 
   useEffect(() => {
     document.body.classList.toggle('crt-on', crtEnabled);
@@ -54,9 +61,9 @@ export function App() {
         onPlayPause={togglePlayPause}
         onPrevious={playPrevious}
         onNext={playNext}
+        onSeek={seek}
         onShuffle={toggleShuffle}
         onRepeat={cycleRepeat}
-        onSeek={seek}
       />
     </div>
   );

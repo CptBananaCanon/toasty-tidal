@@ -1,7 +1,9 @@
 import { invoke } from '@tauri-apps/api/core';
 import { open } from '@tauri-apps/plugin-shell';
+import * as Player from '@tidal-music/player';
 import { generateVerifier, generateChallenge, generateState, buildAuthorizeUrl } from './pkce';
 import { setAccessToken, clearAccessToken } from '../../lib/tidalApi';
+import { bridgeCredentials } from '../../lib/tidalPlayer';
 
 // ---------------------------------------------------------------------------
 // Config
@@ -17,6 +19,8 @@ const TOKEN_URL = 'https://auth.tidal.com/v1/oauth2/token';
 // localStorage keys
 // ---------------------------------------------------------------------------
 const STORAGE_TOKEN = 'tidal_access_token';
+const STORAGE_EXPIRES = 'tidal_token_expires'; // millisecond timestamp
+const STORAGE_SCOPES = 'tidal_token_scopes';   // JSON-encoded string[]
 const STORAGE_VERIFIER = 'tidal_pkce_verifier';
 const STORAGE_STATE = 'tidal_oauth_state';
 
@@ -27,6 +31,7 @@ interface TokenResponse {
   access_token: string;
   token_type: string;
   expires_in: number;
+  scope?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -143,32 +148,59 @@ export async function handleCallback(callbackUrl: string): Promise<void> {
   const data = (await response.json()) as TokenResponse;
   console.log('[AUTH] token exchange success. token_type:', data.token_type, 'expires_in:', data.expires_in);
 
+  const expiresAt = Date.now() + data.expires_in * 1000;
+  const grantedScopes = data.scope ? data.scope.split(' ') : [];
+
   localStorage.removeItem(STORAGE_VERIFIER);
   localStorage.removeItem(STORAGE_STATE);
   localStorage.setItem(STORAGE_TOKEN, data.access_token);
+  localStorage.setItem(STORAGE_EXPIRES, String(expiresAt));
+  localStorage.setItem(STORAGE_SCOPES, JSON.stringify(grantedScopes));
   setAccessToken(data.access_token);
   console.log('[AUTH] access token stored and applied');
+
+  await bridgeCredentials(data.access_token, expiresAt, grantedScopes);
+  console.log('[AUTH] SDK credentials bridge complete');
 }
 
 /**
  * Restore a previously persisted token on app startup.
  * Returns true if a token was found and applied.
  */
-export function restoreSession(): boolean {
+export async function restoreSession(): Promise<boolean> {
   const token = localStorage.getItem(STORAGE_TOKEN);
   console.log('[AUTH] restoreSession: token found in localStorage:', !!token);
   if (!token) return false;
+
   setAccessToken(token);
+
+  const expiresStr = localStorage.getItem(STORAGE_EXPIRES);
+  const scopesStr = localStorage.getItem(STORAGE_SCOPES);
+  const expires = expiresStr ? Number(expiresStr) : Date.now() + 3_600_000;
+  const grantedScopes: string[] = scopesStr ? (JSON.parse(scopesStr) as string[]) : [];
+
+  if (grantedScopes.length > 0) {
+    await bridgeCredentials(token, expires, grantedScopes).catch((err: unknown) => {
+      console.warn('[AUTH] SDK credentials bridge failed on restore:', err);
+    });
+  } else {
+    console.warn('[AUTH] restoreSession: no stored scopes — SDK bridge skipped (re-auth required for playback)');
+  }
+
   return true;
 }
 
 /**
  * Clear all auth state — token from memory, storage, and verifier.
+ * Also stops any active SDK playback.
  */
 export function signOut(): void {
   localStorage.removeItem(STORAGE_TOKEN);
+  localStorage.removeItem(STORAGE_EXPIRES);
+  localStorage.removeItem(STORAGE_SCOPES);
   localStorage.removeItem(STORAGE_VERIFIER);
   localStorage.removeItem(STORAGE_STATE);
   clearAccessToken();
+  Player.reset().catch(console.error);
   console.log('[AUTH] signed out — localStorage and in-memory token cleared');
 }

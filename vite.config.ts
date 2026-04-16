@@ -5,6 +5,16 @@ import react from '@vitejs/plugin-react';
 export default defineConfig(async () => ({
   plugins: [react()],
 
+  build: {
+    target: 'esnext',
+  },
+
+  optimizeDeps: {
+    esbuildOptions: {
+      target: 'esnext',
+    },
+  },
+
   // Vite options tailored for Tauri development
   clearScreen: false,
   server: {

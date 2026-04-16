@@ -71,7 +71,7 @@ export function useAuth(): AuthState {
       } else {
         // ── 3. Normal startup — restore any persisted token ────────────────
         console.log('[AUTH] no launch URL — attempting restoreSession');
-        if (restoreSession()) {
+        if (await restoreSession()) {
           console.log('[AUTH] status → authenticated (restored session)');
           setStatus('authenticated');
         } else {

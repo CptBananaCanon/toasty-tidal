@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import * as Player from '@tidal-music/player';
 import { Track } from '../../types';
 
 export type RepeatMode = 'off' | 'all' | 'one';
@@ -20,53 +21,138 @@ export interface PlayerState {
 
 export function usePlayer(): PlayerState {
   const [queue, setQueue] = useState<Track[]>([]);
-  const [currentIndex, setCurrentIndex] = useState<number>(-1);
+  const [currentIndex, setCurrentIndex] = useState(-1);
   const [isPlaying, setIsPlaying] = useState(false);
   const [shuffle, setShuffle] = useState(false);
   const [repeat, setRepeat] = useState<RepeatMode>('off');
   const [position, setPosition] = useState(0);
 
+  // ---------------------------------------------------------------------------
+  // Refs — keep event-handler closures current without re-registering listeners
+  // ---------------------------------------------------------------------------
+  const queueRef = useRef<Track[]>([]);
+  const currentIndexRef = useRef(-1);
+  const repeatRef = useRef<RepeatMode>('off');
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Sync refs every render (before effects run)
+  queueRef.current = queue;
+  currentIndexRef.current = currentIndex;
+  repeatRef.current = repeat;
+
   const currentTrack = queue[currentIndex] ?? null;
 
-  // Mock timer — ticks every real second while playing
-  useEffect(() => {
-    if (!isPlaying || currentIndex === -1) return;
-    const id = setInterval(() => setPosition((p) => p + 1), 1000);
-    return () => clearInterval(id);
-  }, [isPlaying, currentIndex]);
+  // ---------------------------------------------------------------------------
+  // Polling — starts only while PLAYING, stops on every non-playing transition
+  // ---------------------------------------------------------------------------
+  const stopPolling = useCallback(() => {
+    if (pollRef.current !== null) {
+      clearInterval(pollRef.current);
+      pollRef.current = null;
+    }
+  }, []);
 
-  // End-of-track handler
-  useEffect(() => {
-    const duration = currentTrack?.duration ?? 0;
-    if (duration === 0 || position < duration) return;
+  const startPolling = useCallback(() => {
+    stopPolling();
+    pollRef.current = setInterval(() => {
+      setPosition(Player.getAssetPosition());
+    }, 250);
+  }, [stopPolling]);
 
-    if (repeat === 'one') {
-      setPosition(0);
-    } else if (repeat === 'all') {
-      const nextIdx = currentIndex < queue.length - 1 ? currentIndex + 1 : 0;
+  // ---------------------------------------------------------------------------
+  // SDK event listeners — attached once, cleaned up on unmount
+  // ---------------------------------------------------------------------------
+  useEffect(() => {
+    function onStateChange(e: Event) {
+      const { state } = (e as CustomEvent<{ state: string }>).detail;
+      if (state === 'PLAYING') {
+        setIsPlaying(true);
+        startPolling();
+      } else {
+        // NOT_PLAYING, STALLED, IDLE
+        setIsPlaying(false);
+        stopPolling();
+      }
+    }
+
+    function onEnded() {
+      stopPolling();
+      setIsPlaying(false);
+
+      const idx = currentIndexRef.current;
+      const q = queueRef.current;
+      const rep = repeatRef.current;
+
+      if (rep === 'one') {
+        const track = q[idx];
+        if (track) {
+          Player.load({ productType: 'track', productId: track.id, sourceId: 'queue', sourceType: 'QUEUE' })
+            .then(() => Player.play())
+            .catch(console.error);
+        }
+        return;
+      }
+
+      const isLast = idx >= q.length - 1;
+      const nextIdx = rep === 'all' && isLast ? 0 : idx + 1;
+
+      // repeat === 'off' at end of queue: stop
+      if (rep === 'off' && isLast) return;
+
       setCurrentIndex(nextIdx);
-      setPosition(0);
-    } else {
+      const next = q[nextIdx];
+      if (next) {
+        Player.load({ productType: 'track', productId: next.id, sourceId: 'queue', sourceType: 'QUEUE' })
+          .then(() => Player.play())
+          .catch(console.error);
+      }
+    }
+
+    function onError() {
+      stopPolling();
       setIsPlaying(false);
     }
-  }, [position, repeat, currentTrack, currentIndex, queue.length]);
 
+    Player.events.addEventListener('playback-state-change', onStateChange);
+    Player.events.addEventListener('ended', onEnded);
+    Player.events.addEventListener('error', onError);
+
+    return () => {
+      Player.events.removeEventListener('playback-state-change', onStateChange);
+      Player.events.removeEventListener('ended', onEnded);
+      Player.events.removeEventListener('error', onError);
+      stopPolling();
+    };
+  }, [startPolling, stopPolling]);
+
+  // ---------------------------------------------------------------------------
+  // Public actions
+  // ---------------------------------------------------------------------------
   function play(track: Track, incomingQueue: Track[]) {
     const idx = incomingQueue.findIndex((t) => t.id === track.id);
-    if (idx !== -1) {
-      setQueue(incomingQueue);
-      setCurrentIndex(idx);
-    } else {
-      setQueue([track]);
-      setCurrentIndex(0);
-    }
+    const newQueue = idx !== -1 ? incomingQueue : [track];
+    const newIdx = idx !== -1 ? idx : 0;
+    setQueue(newQueue);
+    setCurrentIndex(newIdx);
     setPosition(0);
-    setIsPlaying(true);
+
+    Player.load({
+      productType: 'track',
+      productId: track.id,
+      sourceId: 'search',
+      sourceType: 'SEARCH',
+    })
+      .then(() => Player.play())
+      .catch(console.error);
   }
 
   function togglePlayPause() {
     if (currentIndex === -1) return;
-    setIsPlaying((prev) => !prev);
+    if (isPlaying) {
+      Player.pause();
+    } else {
+      Player.play().catch(console.error);
+    }
   }
 
   function toggleShuffle() {
@@ -84,20 +170,31 @@ export function usePlayer(): PlayerState {
   function seek(seconds: number) {
     const clamped = Math.max(0, Math.min(seconds, currentTrack?.duration ?? 0));
     setPosition(clamped);
+    Player.seek(clamped)?.catch(console.error);
   }
 
   function playPrevious() {
     if (currentIndex <= 0) return;
-    setCurrentIndex((i) => i - 1);
+    const newIdx = currentIndex - 1;
+    const track = queue[newIdx];
+    if (!track) return;
+    setCurrentIndex(newIdx);
     setPosition(0);
-    setIsPlaying(true);
+    Player.load({ productType: 'track', productId: track.id, sourceId: 'queue', sourceType: 'QUEUE' })
+      .then(() => Player.play())
+      .catch(console.error);
   }
 
   function playNext() {
     if (currentIndex === -1 || currentIndex >= queue.length - 1) return;
-    setCurrentIndex((i) => i + 1);
+    const newIdx = currentIndex + 1;
+    const track = queue[newIdx];
+    if (!track) return;
+    setCurrentIndex(newIdx);
     setPosition(0);
-    setIsPlaying(true);
+    Player.load({ productType: 'track', productId: track.id, sourceId: 'queue', sourceType: 'QUEUE' })
+      .then(() => Player.play())
+      .catch(console.error);
   }
 
   return {

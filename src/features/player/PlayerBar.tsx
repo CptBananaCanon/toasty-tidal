@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Track } from '../../types';
+import { PlayerControls } from './PlayerControls';
 import { RepeatMode } from './usePlayer';
 
 function formatTime(seconds: number): string {
@@ -17,14 +18,14 @@ interface Props {
   onPlayPause: () => void;
   onPrevious: () => void;
   onNext: () => void;
+  onSeek: (seconds: number) => void;
   onShuffle: () => void;
   onRepeat: () => void;
-  onSeek: (seconds: number) => void;
 }
 
 export function PlayerBar({
   track, isPlaying, shuffle, repeat, position,
-  onPlayPause, onPrevious, onNext, onShuffle, onRepeat, onSeek,
+  onPlayPause, onPrevious, onNext, onSeek, onShuffle, onRepeat,
 }: Props) {
   const [volume, setVolume] = useState(80);
   const [showVolume, setShowVolume] = useState(false);
@@ -32,6 +33,20 @@ export function PlayerBar({
   const duration = track?.duration ?? 0;
   const fillPct = duration > 0 ? `${(position / duration) * 100}%` : '0%';
   const volPct = `${volume}%`;
+
+  // Derive separate play/pause/stop handlers from the single togglePlayPause.
+  // Play  → only fires togglePlayPause when not already playing.
+  // Pause → only fires togglePlayPause when currently playing.
+  // Stop  → same as pause functionally (no dedicated reset in usePlayer yet).
+  function handlePlay() {
+    if (!isPlaying) onPlayPause();
+  }
+  function handlePause() {
+    if (isPlaying) onPlayPause();
+  }
+  function handleStop() {
+    if (isPlaying) onPlayPause();
+  }
 
   return (
     <div className="player-bar">
@@ -56,50 +71,21 @@ export function PlayerBar({
         </div>
       </div>
 
-      {/* ── Center: controls + scrubber ── */}
+      {/* ── Center: boombox controls + scrubber ── */}
       <div className="player-bar__center">
-        <div className="player-bar__controls">
-          <button
-            className={`player-btn player-btn--sm${shuffle ? ' player-btn--active' : ''}`}
-            onClick={onShuffle}
-            aria-label="Shuffle"
-            title="Shuffle"
-          >
-            ⇄
-          </button>
-          <button
-            className="player-btn player-btn--sm"
-            onClick={onPrevious}
-            disabled={!track}
-            aria-label="Previous"
-          >
-            ⏮
-          </button>
-          <button
-            className="player-btn player-btn--primary"
-            onClick={onPlayPause}
-            disabled={!track}
-            aria-label={isPlaying ? 'Pause' : 'Play'}
-          >
-            {isPlaying ? '⏸' : '▶'}
-          </button>
-          <button
-            className="player-btn player-btn--sm"
-            onClick={onNext}
-            disabled={!track}
-            aria-label="Next"
-          >
-            ⏭
-          </button>
-          <button
-            className={`player-btn player-btn--sm player-btn--repeat${repeat !== 'off' ? ' player-btn--active' : ''}`}
-            onClick={onRepeat}
-            aria-label={`Repeat: ${repeat}`}
-            title={repeat === 'off' ? 'Repeat off' : repeat === 'all' ? 'Repeat all' : 'Repeat one'}
-          >
-            ↺{repeat === 'one' && <span className="player-btn__badge">1</span>}
-          </button>
-        </div>
+        <PlayerControls
+          isPlaying={isPlaying}
+          hasTrack={track !== null}
+          shuffle={shuffle}
+          repeat={repeat}
+          onPlay={handlePlay}
+          onPause={handlePause}
+          onStop={handleStop}
+          onPrevious={onPrevious}
+          onNext={onNext}
+          onShuffle={onShuffle}
+          onRepeat={onRepeat}
+        />
 
         <div className="player-bar__progress">
           <span className="player-bar__time">{formatTime(position)}</span>
@@ -118,11 +104,8 @@ export function PlayerBar({
         </div>
       </div>
 
-      {/* ── Right: queue + volume ── */}
+      {/* ── Right: volume ── */}
       <div className="player-bar__side">
-        <button className="player-btn player-btn--sm" aria-label="Queue" title="Queue">
-          ☰
-        </button>
         <div className="player-bar__vol-wrapper">
           <button
             className={`player-btn player-btn--sm${showVolume ? ' player-btn--active' : ''}`}
