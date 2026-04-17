@@ -14,7 +14,8 @@
       {
         "title": "Toasty",
         "width": 1024,
-        "height": 700
+        "height": 700,
+        "decorations": false
       }
     ],
     "security": {

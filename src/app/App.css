@@ -58,6 +58,8 @@ body {
   background: var(--color-surface);
   border-bottom: 1px solid var(--color-border);
   flex-shrink: 0;
+  user-select: none;
+  cursor: default;
 }
 
 .header__search {
@@ -74,11 +76,48 @@ body {
   white-space: nowrap;
 }
 
+/* ── Header right slot ─────────────────────────────── */
+.header__right {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
 /* ── Auth controls ─────────────────────────────────── */
 .auth-row {
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+/* ── Window controls ───────────────────────────────── */
+.window-controls {
+  display: flex;
+  align-items: center;
+  margin-left: 8px;
+}
+
+.window-controls__btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: var(--header-height);
+  background: transparent;
+  border: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: background 0.1s, color 0.1s;
+}
+
+.window-controls__btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--color-text);
+}
+
+.window-controls__btn--close:hover {
+  background: #c0392b;
+  color: #fff;
 }
 
 .auth-label {

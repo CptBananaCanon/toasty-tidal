@@ -11,6 +11,34 @@
   </head>
   <body>
     <div id="root"></div>
+    <!--
+      Route TIDAL audio CDN fetch requests through the Vite dev proxy so the
+      browser sends no Origin header (same-origin request), bypassing the 403
+      that the CDN returns for http://localhost:1420. This must be a plain
+      <script> — not a module — so it executes before any ES module is
+      evaluated (and before the SDK can capture a reference to window.fetch).
+      In production the app runs as tauri://localhost which the CDN allows.
+    -->
+    <script>
+      if (location.protocol === 'http:') {
+        var _audioCdn = /^https?:\/\/([a-z0-9-]+\.audio\.tidal\.com)(\/[^?]*)?(\?.*)?$/i;
+        var _origFetch = window.fetch.bind(window);
+        window.fetch = function(input, init) {
+          var url = typeof input === 'string' ? input
+            : (input instanceof URL) ? input.href
+            : input.url;
+          var m = url.match(_audioCdn);
+          if (m) {
+            var proxyUrl = '/tidal-audio-proxy/' + m[1] + (m[2] || '') + (m[3] || '');
+            return _origFetch(
+              (input instanceof Request) ? new Request(proxyUrl, input) : proxyUrl,
+              init
+            );
+          }
+          return _origFetch(input, init);
+        };
+      }
+    </script>
     <script type="module" src="/src/app/main.tsx"></script>
   </body>
 </html>
