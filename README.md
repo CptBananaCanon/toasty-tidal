@@ -1,4 +1,4 @@
-<img width="2558" height="1436" alt="TOASTY-player2" src="https://github.com/user-attachments/assets/1963844d-26c9-45b7-80cc-815e83a23ab5" />
+
 # TOASTY 🎵
 
 > A TIDAL desktop client that doesn't look like it was built in 2009.
