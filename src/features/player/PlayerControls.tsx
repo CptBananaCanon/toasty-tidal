@@ -1,15 +1,16 @@
-import { useState, useEffect, useRef } from 'react';
+import {
+  Shuffle, SkipBack, Play, Pause, SkipForward, Repeat, Repeat2,
+} from 'lucide-react';
 import { RepeatMode } from './usePlayer';
-import './PlayerControls.css';
+import { Button } from '../../components/ui/button';
+import { cn } from '../../lib/utils';
 
 interface Props {
   isPlaying: boolean;
   hasTrack: boolean;
   shuffle: boolean;
   repeat: RepeatMode;
-  onPlay: () => void;
-  onPause: () => void;
-  onStop: () => void;
+  onPlayPause: () => void;
   onPrevious: () => void;
   onNext: () => void;
   onShuffle: () => void;
@@ -18,134 +19,72 @@ interface Props {
 
 export function PlayerControls({
   isPlaying, hasTrack, shuffle, repeat,
-  onPlay, onPause, onStop, onPrevious, onNext, onShuffle, onRepeat,
+  onPlayPause, onPrevious, onNext, onShuffle, onRepeat,
 }: Props) {
-  // Two independent latches — both can be physically down at the same time.
-  // Audio plays only when playLatched=true AND pauseLatched=false.
-  const [playLatched, setPlayLatched]   = useState(isPlaying);
-  const [pauseLatched, setPauseLatched] = useState(false);
-
-  // Ref so the isPlaying effect can read pauseLatched without it being a dep.
-  const pauseLatchedRef = useRef(false);
-
-  useEffect(() => {
-    if (isPlaying) {
-      // SDK confirmed playback — Play down, Pause up.
-      setPlayLatched(true);
-      setPauseLatched(false);
-      pauseLatchedRef.current = false;
-    } else if (!pauseLatchedRef.current) {
-      // Stopped by external event (track ended, error) not by our pause button.
-      setPlayLatched(false);
-    }
-    // If !isPlaying && pauseLatched: we caused the pause — keep both buttons down.
-  }, [isPlaying]);
-
-  function handlePlay() {
-    setPlayLatched(true);
-    if (!pauseLatchedRef.current) {
-      // Pause is up — pressing Play starts/resumes normally.
-      onPlay();
-    }
-    // Pause is already down — both buttons latch but audio stays held.
-  }
-
-  function handlePause() {
-    const next = !pauseLatched;
-    setPauseLatched(next);
-    pauseLatchedRef.current = next;
-    if (next) {
-      // Pause button going DOWN — hold the deck.
-      onPause();
-    } else if (playLatched) {
-      // Pause button popping UP while Play is still down — resume.
-      onPlay();
-    }
-  }
-
-  function handleStop() {
-    setPlayLatched(false);
-    setPauseLatched(false);
-    pauseLatchedRef.current = false;
-    onStop();
-  }
-
   return (
-    <div className="boombox-panel" role="group" aria-label="Transport controls">
+    <div className="flex items-center gap-0.5" role="group" aria-label="Transport controls">
 
-      {/* ── Mode: shuffle ── */}
-      <button
-        className={`boombox-btn boombox-btn--mode${shuffle ? ' boombox-btn--active' : ''}`}
+      {/* Shuffle */}
+      <Button
+        variant="ghost"
+        size="icon"
+        className={cn(shuffle && 'text-zinc-100 bg-zinc-700')}
         onClick={onShuffle}
         aria-label="Shuffle"
         aria-pressed={shuffle}
-        title="Shuffle"
       >
-        <span className="boombox-btn__icon">⇄</span>
-      </button>
+        <Shuffle className="h-4 w-4" />
+      </Button>
 
-      <div className="boombox-divider" aria-hidden="true" />
-
-      {/* ── Transport: prev / next ── */}
-      <button
-        className="boombox-btn"
+      {/* Previous */}
+      <Button
+        variant="ghost"
+        size="icon"
         onClick={onPrevious}
         disabled={!hasTrack}
         aria-label="Previous"
       >
-        <span className="boombox-btn__icon">⏮</span>
-      </button>
+        <SkipBack className="h-4 w-4" />
+      </Button>
 
-      {/* ── Playback: play / pause / stop ── */}
-      <button
-        className={`boombox-btn${playLatched ? ' boombox-btn--active' : ''}`}
-        onClick={handlePlay}
-        aria-label="Play"
-        aria-pressed={playLatched}
+      {/* Play / Pause toggle */}
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={onPlayPause}
+        aria-label={isPlaying ? 'Pause' : 'Play'}
       >
-        <span className="boombox-btn__icon">▶</span>
-      </button>
+        {isPlaying
+          ? <Pause className="h-4 w-4" />
+          : <Play className="h-4 w-4" />
+        }
+      </Button>
 
-      <button
-        className={`boombox-btn${pauseLatched ? ' boombox-btn--active' : ''}`}
-        onClick={handlePause}
-        aria-label="Pause"
-        aria-pressed={pauseLatched}
-      >
-        <span className="boombox-btn__icon">⏸</span>
-      </button>
-
-      <button
-        className="boombox-btn boombox-btn--stop"
-        onClick={handleStop}
-        aria-label="Stop"
-      >
-        <span className="boombox-btn__icon">■</span>
-      </button>
-
-      <button
-        className="boombox-btn"
+      {/* Next */}
+      <Button
+        variant="ghost"
+        size="icon"
         onClick={onNext}
         disabled={!hasTrack}
         aria-label="Next"
       >
-        <span className="boombox-btn__icon">⏭</span>
-      </button>
+        <SkipForward className="h-4 w-4" />
+      </Button>
 
-      <div className="boombox-divider" aria-hidden="true" />
-
-      {/* ── Mode: repeat ── */}
-      <button
-        className={`boombox-btn boombox-btn--mode${repeat !== 'off' ? ' boombox-btn--active' : ''}`}
+      {/* Repeat — Repeat2 (two arrows) for all/off, Repeat for one */}
+      <Button
+        variant="ghost"
+        size="icon"
+        className={cn(repeat !== 'off' && 'text-zinc-100 bg-zinc-700')}
         onClick={onRepeat}
         aria-label={`Repeat: ${repeat}`}
         aria-pressed={repeat !== 'off'}
-        title={repeat === 'off' ? 'Repeat off' : repeat === 'all' ? 'Repeat all' : 'Repeat one'}
       >
-        <span className="boombox-btn__icon boombox-btn__icon--repeat">
-          ↺{repeat === 'one' && <span className="boombox-btn__badge">1</span>}
-        </span>
-      </button>
+        {repeat === 'one'
+          ? <Repeat className="h-4 w-4" />
+          : <Repeat2 className="h-4 w-4" />
+        }
+      </Button>
 
     </div>
   );

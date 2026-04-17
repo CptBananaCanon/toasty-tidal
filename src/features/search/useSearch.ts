@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { searchTracks, SearchSource } from '../../lib/tidalApi';
-import { Track } from '../../types';
+import { Track, SearchResultItem } from '../../types';
 
 const DEBOUNCE_MS = 300;
 
 export interface SearchState {
   query: string;
-  results: Track[];
+  items: SearchResultItem[];  // all items returned by the current search
+  tracks: Track[];            // just the track items — convenience for queue building
   isLoading: boolean;
   error: string | null;
   source: SearchSource | null;
@@ -21,7 +22,7 @@ export interface SearchState {
 export function useSearch(isAuthenticated: boolean): SearchState {
   const [query, setQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
-  const [results, setResults] = useState<Track[]>([]);
+  const [items, setItems] = useState<SearchResultItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [source, setSource] = useState<SearchSource | null>(null);
@@ -37,7 +38,7 @@ export function useSearch(isAuthenticated: boolean): SearchState {
     const q = debouncedQuery.trim();
 
     if (!q) {
-      setResults([]);
+      setItems([]);
       setError(null);
       setSource(null);
       return;
@@ -51,14 +52,14 @@ export function useSearch(isAuthenticated: boolean): SearchState {
     searchTracks(q)
       .then((result) => {
         if (cancelled) return;
-        setResults(result.tracks);
+        setItems(result.items);
         setSource(result.source);
       })
       .catch((err: unknown) => {
         if (cancelled) return;
         const message = err instanceof Error ? err.message : 'Search failed.';
         setError(message);
-        setResults([]);
+        setItems([]);
       })
       .finally(() => {
         if (!cancelled) setIsLoading(false);
@@ -67,7 +68,11 @@ export function useSearch(isAuthenticated: boolean): SearchState {
     return () => {
       cancelled = true;
     };
-  }, [debouncedQuery, isAuthenticated]); // re-run when auth changes
+  }, [debouncedQuery, isAuthenticated]);
 
-  return { query, results, isLoading, error, source, setQuery };
+  const tracks = items
+    .filter((i): i is { kind: 'track'; data: Track } => i.kind === 'track')
+    .map((i) => i.data);
+
+  return { query, items, tracks, isLoading, error, source, setQuery };
 }

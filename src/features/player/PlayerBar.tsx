@@ -1,7 +1,10 @@
 import { useState } from 'react';
+import { Volume2, VolumeX } from 'lucide-react';
 import { Track } from '../../types';
-import { PlayerControls } from './PlayerControls';
 import { RepeatMode } from './usePlayer';
+import { PlayerControls } from './PlayerControls';
+import { Button } from '../../components/ui/button';
+import { cn } from '../../lib/utils';
 
 function formatTime(seconds: number): string {
   const m = Math.floor(seconds / 60);
@@ -34,20 +37,6 @@ export function PlayerBar({
   const fillPct = duration > 0 ? `${(position / duration) * 100}%` : '0%';
   const volPct = `${volume}%`;
 
-  // Derive separate play/pause/stop handlers from the single togglePlayPause.
-  // Play  → only fires togglePlayPause when not already playing.
-  // Pause → only fires togglePlayPause when currently playing.
-  // Stop  → same as pause functionally (no dedicated reset in usePlayer yet).
-  function handlePlay() {
-    if (!isPlaying) onPlayPause();
-  }
-  function handlePause() {
-    if (isPlaying) onPlayPause();
-  }
-  function handleStop() {
-    if (isPlaying) onPlayPause();
-  }
-
   return (
     <div className="player-bar">
 
@@ -71,16 +60,14 @@ export function PlayerBar({
         </div>
       </div>
 
-      {/* ── Center: boombox controls + scrubber ── */}
+      {/* ── Center: controls + scrubber ── */}
       <div className="player-bar__center">
         <PlayerControls
           isPlaying={isPlaying}
           hasTrack={track !== null}
           shuffle={shuffle}
           repeat={repeat}
-          onPlay={handlePlay}
-          onPause={handlePause}
-          onStop={handleStop}
+          onPlayPause={onPlayPause}
           onPrevious={onPrevious}
           onNext={onNext}
           onShuffle={onShuffle}
@@ -107,14 +94,19 @@ export function PlayerBar({
       {/* ── Right: volume ── */}
       <div className="player-bar__side">
         <div className="player-bar__vol-wrapper">
-          <button
-            className={`player-btn player-btn--sm${showVolume ? ' player-btn--active' : ''}`}
+          <Button
+            variant="ghost"
+            size="icon"
+            className={cn(showVolume && 'bg-zinc-800 text-zinc-100')}
             onClick={() => setShowVolume((v) => !v)}
             aria-label="Volume"
             title="Volume"
           >
-            {volume === 0 ? '○' : '♪'}
-          </button>
+            {volume === 0
+              ? <VolumeX className="h-4 w-4" />
+              : <Volume2 className="h-4 w-4" />
+            }
+          </Button>
           {showVolume && (
             <div className="player-bar__vol-panel">
               <input

@@ -1,34 +1,25 @@
-import { Track } from '../types';
+import { Track, Album, Playlist, SearchResultItem } from '../types';
 import { mockTracks } from './mockData';
 
 // ---------------------------------------------------------------------------
-// Config — only client ID is exposed to the browser; secret stays server-side
+// Config
 // ---------------------------------------------------------------------------
 const BASE_URL = 'https://openapi.tidal.com/v2';
 const DEFAULT_COUNTRY = 'US';
 
 // ---------------------------------------------------------------------------
-// Token store — populated by auth feature (Milestone 2, PKCE flow)
+// Token store
 // ---------------------------------------------------------------------------
 let _accessToken: string | null = null;
 
-export function setAccessToken(token: string): void {
-  _accessToken = token;
-}
-
-export function clearAccessToken(): void {
-  _accessToken = null;
-}
-
-export function hasAccessToken(): boolean {
-  return _accessToken !== null;
-}
+export function setAccessToken(token: string): void  { _accessToken = token; }
+export function clearAccessToken(): void             { _accessToken = null;  }
+export function hasAccessToken(): boolean            { return _accessToken !== null; }
 
 // ---------------------------------------------------------------------------
 // TIDAL JSON:API response shapes
 // ---------------------------------------------------------------------------
 
-// Resource linkage used in relationship.data (single or array)
 interface ResourceRef {
   type: string;
   id: string;
@@ -42,7 +33,7 @@ interface TidalRelationship {
 // Track
 interface TidalTrackAttributes {
   title: string;
-  duration: number | string; // v2 returns ISO 8601 e.g. "PT3M50S"
+  duration: number | string;
 }
 
 interface TidalTrackResource {
@@ -55,10 +46,9 @@ interface TidalTrackResource {
   };
 }
 
-// Artist (sideloaded via include=artists)
+// Artist
 interface TidalArtistAttributes {
   name: string;
-  imageLink?: Array<{ url: string; width: number; height: number }>;
 }
 
 interface TidalArtistResource {
@@ -67,36 +57,78 @@ interface TidalArtistResource {
   attributes: TidalArtistAttributes;
 }
 
-// Album (sideloaded via include=tracks.albums)
+// Album
 interface TidalAlbumAttributes {
   title: string;
-  imageCover?: Array<{ url: string; width: number; height: number }>;
+  numberOfTracks?: number;
+  releaseDate?: string;
 }
 
 interface TidalAlbumResource {
   type: 'albums';
   id: string;
   attributes: TidalAlbumAttributes;
-  // tracks.albums.artists populates this when the nested include is used
   relationships?: {
     artists?: TidalRelationship;
+    coverArt?: TidalRelationship;
   };
+}
+
+// Artwork — the actual image resource sideloaded via albums.coverArt
+interface TidalArtworkFile {
+  href: string;
+  meta: { width: number; height: number };
+}
+
+interface TidalArtworkResource {
+  type: 'artworks';
+  id: string;
+  attributes: {
+    mediaType: string;
+    files: TidalArtworkFile[];
+  };
+}
+
+// Playlist
+interface TidalPlaylistAttributes {
+  title: string;
+  numberOfTracks?: number;
+  numberOfItems?: number;
+  description?: string;
+}
+
+interface TidalPlaylistResource {
+  type: 'playlists';
+  id: string;
+  attributes: TidalPlaylistAttributes;
 }
 
 type TidalResource =
   | TidalTrackResource
   | TidalArtistResource
   | TidalAlbumResource
+  | TidalArtworkResource
+  | TidalPlaylistResource
   | { type: string; id: string };
 
+// Top-level search result resource — relationships identify actual result IDs
+interface TidalSearchResultData {
+  type: string;
+  id: string;
+  relationships?: {
+    tracks?:    TidalRelationship;
+    albums?:    TidalRelationship;
+    playlists?: TidalRelationship;
+  };
+}
+
 interface TidalSearchResponse {
+  data?:     TidalSearchResultData;
   included?: TidalResource[];
 }
 
 // ---------------------------------------------------------------------------
-// Duration parser
-// Handles both a plain number (seconds) and ISO 8601 strings like
-// "PT3M50S" or "P0Y0M0DT0H3M50.5S" that TIDAL v2 actually returns.
+// Duration parser — handles plain seconds or ISO 8601 "PT3M50S"
 // ---------------------------------------------------------------------------
 function parseDuration(raw: number | string): number {
   if (typeof raw === 'number') return Math.round(raw);
@@ -109,10 +141,8 @@ function parseDuration(raw: number | string): number {
 }
 
 // ---------------------------------------------------------------------------
-// Relationship resolution helpers
+// Relationship helpers
 // ---------------------------------------------------------------------------
-
-// Build a map of "type:id" → resource from the included array
 function buildIncludedMap(included: TidalResource[]): Map<string, TidalResource> {
   const map = new Map<string, TidalResource>();
   for (const r of included) {
@@ -121,14 +151,30 @@ function buildIncludedMap(included: TidalResource[]): Map<string, TidalResource>
   return map;
 }
 
-// Return the first ID from a relationship's data field (single or array)
 function firstRelId(rel: TidalRelationship | undefined): string | undefined {
   if (!rel?.data) return undefined;
   return Array.isArray(rel.data) ? rel.data[0]?.id : rel.data.id;
 }
 
+function allRelIds(rel: TidalRelationship | undefined): string[] {
+  if (!rel?.data) return [];
+  if (Array.isArray(rel.data)) return rel.data.map((r) => r.id);
+  return [rel.data.id];
+}
+
+// Pick the smallest artwork file at or above targetWidth
+function artworkUrl(
+  artwork: TidalArtworkResource | undefined,
+  targetWidth = 320,
+): string | undefined {
+  if (!artwork) return undefined;
+  return artwork.attributes.files
+    .filter((f) => f.meta.width >= targetWidth)
+    .sort((a, b) => a.meta.width - b.meta.width)[0]?.href;
+}
+
 // ---------------------------------------------------------------------------
-// Mapper
+// Mappers
 // ---------------------------------------------------------------------------
 function mapTrack(
   resource: TidalTrackResource,
@@ -136,33 +182,31 @@ function mapTrack(
 ): Track {
   const { attributes: a, relationships: r } = resource;
 
-  // Resolve album first — needed for both cover art and album-artist fallback
+  // Resolve album
   const albumId = firstRelId(r?.albums);
-  const albumResource =
-    albumId ? (includedMap.get(`albums:${albumId}`) as TidalAlbumResource | undefined)
-            : undefined;
+  const albumResource = albumId
+    ? (includedMap.get(`albums:${albumId}`) as TidalAlbumResource | undefined)
+    : undefined;
 
-  // ── Artist resolution (two paths) ───────────────────────────────────────
-  // Path 1: track.relationships.artists.data → included artist (requires
-  //   tracks.artists in the include param to populate .data on the track)
+  // Resolve artwork via album → coverArt relationship
+  const artworkId = firstRelId(albumResource?.relationships?.coverArt);
+  const artwork = artworkId
+    ? (includedMap.get(`artworks:${artworkId}`) as TidalArtworkResource | undefined)
+    : undefined;
+
+  // Artist: prefer track-level, fall back to album-level
   const trackArtistId = firstRelId(r?.artists);
-  const trackArtistResource = trackArtistId
+  const trackArtist = trackArtistId
     ? (includedMap.get(`artists:${trackArtistId}`) as TidalArtistResource | undefined)
     : undefined;
 
-  // Path 2: album.relationships.artists.data → included artist (fallback;
-  //   requires tracks.albums.artists in the include param)
   const albumArtistId = firstRelId(albumResource?.relationships?.artists);
-  const albumArtistResource = albumArtistId
+  const albumArtist = albumArtistId
     ? (includedMap.get(`artists:${albumArtistId}`) as TidalArtistResource | undefined)
     : undefined;
 
-  const artistResource = trackArtistResource ?? albumArtistResource;
+  const artistResource = trackArtist ?? albumArtist;
   const resolvedArtistId = trackArtistId ?? albumArtistId;
-
-  const cover = albumResource?.attributes?.imageCover
-    ?.filter((l) => l.width >= 160)
-    .sort((a, b) => a.width - b.width)[0]?.url;
 
   return {
     id: resource.id,
@@ -173,21 +217,61 @@ function mapTrack(
     },
     album: albumResource?.attributes?.title ?? '',
     duration: parseDuration(a.duration),
-    coverUrl: cover,
+    coverUrl: artworkUrl(artwork),
+  };
+}
+
+function mapAlbum(
+  resource: TidalAlbumResource,
+  includedMap: Map<string, TidalResource>,
+): Album {
+  const { attributes: a, relationships: r } = resource;
+
+  const artistId = firstRelId(r?.artists);
+  const artistResource = artistId
+    ? (includedMap.get(`artists:${artistId}`) as TidalArtistResource | undefined)
+    : undefined;
+
+  const artworkId = firstRelId(r?.coverArt);
+  const artwork = artworkId
+    ? (includedMap.get(`artworks:${artworkId}`) as TidalArtworkResource | undefined)
+    : undefined;
+
+  return {
+    id: resource.id,
+    title: a.title,
+    artist: {
+      id: artistId ?? 'unknown',
+      name: artistResource?.attributes?.name ?? 'Unknown Artist',
+    },
+    numberOfTracks: a.numberOfTracks ?? 0,
+    releaseDate: a.releaseDate,
+    coverUrl: artworkUrl(artwork),
+  };
+}
+
+function mapPlaylist(resource: TidalPlaylistResource): Playlist {
+  return {
+    id: resource.id,
+    title: resource.attributes.title,
+    numberOfTracks: resource.attributes.numberOfTracks ?? resource.attributes.numberOfItems ?? 0,
+    description: resource.attributes.description,
   };
 }
 
 // ---------------------------------------------------------------------------
-// Mock fallback (used when no access token is available)
+// Mock fallback
 // ---------------------------------------------------------------------------
-function searchMock(query: string): Track[] {
+function searchMock(query: string): SearchResultItem[] {
   const q = query.trim().toLowerCase();
-  return mockTracks.filter(
-    (t) =>
-      t.title.toLowerCase().includes(q) ||
-      t.artist.name.toLowerCase().includes(q) ||
-      t.album.toLowerCase().includes(q),
-  );
+  return mockTracks
+    .filter(
+      (t) =>
+        t.title.toLowerCase().includes(q) ||
+        t.artist.name.toLowerCase().includes(q) ||
+        t.album.toLowerCase().includes(q),
+    )
+    .map((data) => ({ kind: 'track' as const, data }));
 }
 
 // ---------------------------------------------------------------------------
@@ -196,7 +280,7 @@ function searchMock(query: string): Track[] {
 export type SearchSource = 'api' | 'mock';
 
 export interface SearchResult {
-  tracks: Track[];
+  items: SearchResultItem[];
   source: SearchSource;
 }
 
@@ -205,26 +289,23 @@ export async function searchTracks(
   countryCode = DEFAULT_COUNTRY,
 ): Promise<SearchResult> {
   const q = query.trim();
-  if (!q) return { tracks: [], source: 'mock' };
+  if (!q) return { items: [], source: 'mock' };
 
-  // No token → fall back to mock immediately
   if (!_accessToken) {
-    return { tracks: searchMock(q), source: 'mock' };
+    return { items: searchMock(q), source: 'mock' };
   }
 
   const url = new URL(`${BASE_URL}/searchResults/${encodeURIComponent(q)}`);
   url.searchParams.set('countryCode', countryCode);
-  // Nested JSON:API include paths so TIDAL populates .data on each relationship
-  // and sideloads the referenced resources into the top-level included array:
-  //   tracks           — track resources for this search
-  //   tracks.artists   — artist resources linked from each track
-  //   tracks.albums    — album resources linked from each track
-  //   tracks.albums.artists — artist resources linked from each track's album
-  //                           (fallback if track-level artist linkage is absent)
-  url.searchParams.set('include', 'tracks,tracks.artists,tracks.albums,tracks.albums.artists');
+  url.searchParams.set(
+    'include',
+    [
+      'tracks', 'tracks.artists', 'tracks.albums', 'tracks.albums.artists', 'tracks.albums.coverArt',
+      'albums', 'albums.artists', 'albums.coverArt',
+      'playlists',
+    ].join(','),
+  );
   url.searchParams.set('limit', '20');
-
-  console.log('[SEARCH] request URL:', url.toString());
 
   const response = await fetch(url.toString(), {
     headers: {
@@ -233,54 +314,44 @@ export async function searchTracks(
     },
   });
 
-  console.log('[SEARCH] response status:', response.status);
-
   if (!response.ok) {
     const body = await response.text().catch(() => '<unreadable>');
-    console.error('[SEARCH] error body:', body);
     throw new Error(`TIDAL API responded with ${response.status}: ${body}`);
   }
 
   const data: TidalSearchResponse = await response.json();
   const included = data.included ?? [];
-
-  // ── Debug: count resources by type ──────────────────────────────────────
-  const typeCounts: Record<string, number> = {};
-  for (const r of included) typeCounts[r.type] = (typeCounts[r.type] ?? 0) + 1;
-  console.log('[SEARCH] included types:', typeCounts);
-
-  // Is any artist resource present at all?
-  const firstArtist = included.find((r) => r.type === 'artists') as TidalArtistResource | undefined;
-  console.log('[SEARCH] any artists in included:', !!firstArtist);
-  if (firstArtist) {
-    console.log('[SEARCH] first artist resource:', JSON.stringify(firstArtist, null, 2));
-  }
-
-  // First track's relationships (compact — shows whether .data is populated)
-  const firstTrack = included.find((r) => r.type === 'tracks') as TidalTrackResource | undefined;
-  if (firstTrack) {
-    console.log('[SEARCH] first track.relationships:', JSON.stringify(firstTrack.relationships));
-  }
-
-  // First album's relationships (compact — shows whether album→artist .data is populated)
-  const firstAlbum = included.find((r) => r.type === 'albums') as
-    | (TidalAlbumResource & { relationships?: unknown })
-    | undefined;
-  if (firstAlbum) {
-    console.log('[SEARCH] first album.relationships:', JSON.stringify(firstAlbum.relationships));
-  }
-  // ── End debug ────────────────────────────────────────────────────────────
-
   const includedMap = buildIncludedMap(included);
 
+  const primaryRels = data.data?.relationships;
+
+  const trackResultIds = primaryRels?.tracks
+    ? new Set(allRelIds(primaryRels.tracks))
+    : null;
+
+  const albumResultIds   = new Set(allRelIds(primaryRels?.albums));
+  const playlistResultIds = new Set(allRelIds(primaryRels?.playlists));
+
   const tracks = included
-    .filter((r): r is TidalTrackResource => r.type === 'tracks')
-    .map((track) => mapTrack(track, includedMap));
+    .filter((r): r is TidalTrackResource =>
+      r.type === 'tracks' && (trackResultIds === null || trackResultIds.has(r.id)))
+    .map((r) => mapTrack(r, includedMap));
 
-  if (tracks.length > 0) {
-    console.log('[SEARCH] first track artist resolved:', tracks[0].artist.name);
-  }
-  console.log('[SEARCH] mapped tracks:', tracks.length);
+  const albums = included
+    .filter((r): r is TidalAlbumResource =>
+      r.type === 'albums' && albumResultIds.has(r.id))
+    .map((r) => mapAlbum(r, includedMap));
 
-  return { tracks, source: 'api' };
+  const playlists = included
+    .filter((r): r is TidalPlaylistResource =>
+      r.type === 'playlists' && playlistResultIds.has(r.id))
+    .map(mapPlaylist);
+
+  const items: SearchResultItem[] = [
+    ...tracks.map((data) => ({ kind: 'track' as const, data })),
+    ...albums.map((data) => ({ kind: 'album' as const, data })),
+    ...playlists.map((data) => ({ kind: 'playlist' as const, data })),
+  ];
+
+  return { items, source: 'api' };
 }
