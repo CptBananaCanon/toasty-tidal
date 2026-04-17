@@ -1,3 +1,4 @@
+<img width="2558" height="1436" alt="TOASTY-player2" src="https://github.com/user-attachments/assets/1963844d-26c9-45b7-80cc-815e83a23ab5" />
 # TOASTY 🎵
 
 > A TIDAL desktop client that doesn't look like it was built in 2009.
@@ -20,7 +21,7 @@ Built with Tauri v2 + React + TypeScript. Runs natively on Linux. No Electron, n
 
 ## Screenshots
 
-<img width="1992" height="958" alt="TOASTY-player" src="https://github.com/user-attachments/assets/b7a805b2-4bb5-43d9-b797-9f41865236b0" />
+<img width="2558" height="1436" alt="TOASTY-player2" src="https://github.com/user-attachments/assets/c72d2bc8-d1ec-4971-90de-c027de8c0015" />
 
 ---
 
