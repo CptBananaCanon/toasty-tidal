@@ -21,7 +21,7 @@ Built with Tauri v2 + React + TypeScript. Runs natively on Linux. No Electron, n
 
 ## Screenshots
 
-<img width="2558" height="1436" alt="TOASTY-player2" src="https://github.com/user-attachments/assets/c72d2bc8-d1ec-4971-90de-c027de8c0015" />
+<img width="100%" alt="TOASTY-player2" src="https://github.com/user-attachments/assets/c72d2bc8-d1ec-4971-90de-c027de8c0015" />
 
 ---
 
