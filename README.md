@@ -20,8 +20,7 @@ Built with Tauri v2 + React + TypeScript. Runs natively on Linux. No Electron, n
 
 ## Screenshots
 
-<!-- TODO: add screenshots -->
-> *Drop some screenshots here when you have them.*
+<img width="1992" height="958" alt="TOASTY-player" src="https://github.com/user-attachments/assets/b7a805b2-4bb5-43d9-b797-9f41865236b0" />
 
 ---
 
@@ -122,7 +121,3 @@ src/
 - **No client secret in the frontend** — ever. The PKCE flow requires only the client ID
 
 ---
-
-## License
-
-MIT
