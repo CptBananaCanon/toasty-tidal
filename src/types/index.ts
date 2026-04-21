@@ -33,3 +33,14 @@ export type SearchResultItem =
   | { kind: 'track';    data: Track }
   | { kind: 'album';    data: Album }
   | { kind: 'playlist'; data: Playlist };
+
+export type QueueEntry = {
+  id: string;          // crypto.randomUUID() — stable per entry, supports duplicate tracks
+  track: Track;
+  origin: 'manual' | 'context';
+};
+
+export type ContextSnapshot = {
+  label: string;       // e.g. 'Search: "jazz"'
+  entries: QueueEntry[];
+};

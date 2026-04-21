@@ -3,7 +3,7 @@ import { open } from '@tauri-apps/plugin-shell';
 import * as Player from '@tidal-music/player';
 import { generateVerifier, generateChallenge, generateState, buildAuthorizeUrl } from './pkce';
 import { setAccessToken, clearAccessToken } from '../../lib/tidalApi';
-import { bridgeCredentials } from '../../lib/tidalPlayer';
+import { bridgeCredentials, resetAuth } from '../../lib/tidalPlayer';
 
 // ---------------------------------------------------------------------------
 // Config
@@ -159,8 +159,15 @@ export async function handleCallback(callbackUrl: string): Promise<void> {
   setAccessToken(data.access_token);
   console.log('[AUTH] access token stored and applied');
 
-  await bridgeCredentials(data.access_token, expiresAt, grantedScopes);
-  console.log('[AUTH] SDK credentials bridge complete');
+  // Bridge credentials to the TIDAL SDK in the background.
+  // Auth status (isAuthenticated) is determined by the token alone — we must
+  // not await bridgeCredentials() here because Auth.init() / setCredentials()
+  // can make network requests that hang indefinitely, which would freeze the
+  // auth callback and leave the UI stuck at "Signing in…" with no error.
+  bridgeCredentials(data.access_token, expiresAt, grantedScopes).catch(
+    (err: unknown) => console.error('[AUTH] SDK credentials bridge failed:', err),
+  );
+  console.log('[AUTH] SDK credentials bridge started in background');
 }
 
 /**
@@ -179,12 +186,14 @@ export async function restoreSession(): Promise<boolean> {
   const expires = expiresStr ? Number(expiresStr) : Date.now() + 3_600_000;
   const grantedScopes: string[] = scopesStr ? (JSON.parse(scopesStr) as string[]) : [];
 
+  // Same reasoning as handleCallback: bridge in background, never block
+  // restoreSession() on a potentially-hanging network call from the SDK.
   if (grantedScopes.length > 0) {
-    await bridgeCredentials(token, expires, grantedScopes).catch((err: unknown) => {
+    bridgeCredentials(token, expires, grantedScopes).catch((err: unknown) => {
       console.warn('[AUTH] SDK credentials bridge failed on restore:', err);
     });
   } else {
-    console.warn('[AUTH] restoreSession: no stored scopes — SDK bridge skipped (re-auth required for playback)');
+    console.warn('[AUTH] restoreSession: no stored scopes — SDK bridge skipped');
   }
 
   return true;
@@ -200,7 +209,9 @@ export function signOut(): void {
   localStorage.removeItem(STORAGE_SCOPES);
   localStorage.removeItem(STORAGE_VERIFIER);
   localStorage.removeItem(STORAGE_STATE);
+  localStorage.removeItem('tidal-creds'); // clear SDK credential cache
   clearAccessToken();
+  resetAuth(); // reset cached init promises so next sign-in starts fresh
   Player.reset().catch(console.error);
   console.log('[AUTH] signed out — localStorage and in-memory token cleared');
 }

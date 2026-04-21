@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Volume2, VolumeX } from 'lucide-react';
+import { Volume2, VolumeX, ListMusic } from 'lucide-react';
 import { Track } from '../../types';
 import { RepeatMode } from './usePlayer';
 import { PlayerControls } from './PlayerControls';
@@ -18,17 +18,19 @@ interface Props {
   shuffle: boolean;
   repeat: RepeatMode;
   position: number;
+  queueOpen: boolean;
   onPlayPause: () => void;
   onPrevious: () => void;
   onNext: () => void;
   onSeek: (seconds: number) => void;
   onShuffle: () => void;
   onRepeat: () => void;
+  onToggleQueue: () => void;
 }
 
 export function PlayerBar({
-  track, isPlaying, shuffle, repeat, position,
-  onPlayPause, onPrevious, onNext, onSeek, onShuffle, onRepeat,
+  track, isPlaying, shuffle, repeat, position, queueOpen,
+  onPlayPause, onPrevious, onNext, onSeek, onShuffle, onRepeat, onToggleQueue,
 }: Props) {
   const [volume, setVolume] = useState(80);
   const [showVolume, setShowVolume] = useState(false);
@@ -91,8 +93,18 @@ export function PlayerBar({
         </div>
       </div>
 
-      {/* ── Right: volume ── */}
+      {/* ── Right: queue + volume ── */}
       <div className="player-bar__side">
+        <Button
+          variant="ghost"
+          size="icon"
+          className={cn(queueOpen && 'bg-zinc-800 text-zinc-100')}
+          onClick={onToggleQueue}
+          aria-label="Queue"
+          title="Queue"
+        >
+          <ListMusic className="h-4 w-4" />
+        </Button>
         <div className="player-bar__vol-wrapper">
           <Button
             variant="ghost"

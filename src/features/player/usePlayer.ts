@@ -17,6 +17,8 @@ export interface PlayerState {
   seek: (seconds: number) => void;
   playPrevious: () => void;
   playNext: () => void;
+  injectAfterCurrent: (track: Track) => void;
+  replaceUpcoming: (tracks: Track[]) => void;
 }
 
 export function usePlayer(): PlayerState {
@@ -69,7 +71,6 @@ export function usePlayer(): PlayerState {
         setIsPlaying(true);
         startPolling();
       } else {
-        // NOT_PLAYING, STALLED, IDLE
         setIsPlaying(false);
         stopPolling();
       }
@@ -96,7 +97,6 @@ export function usePlayer(): PlayerState {
       const isLast = idx >= q.length - 1;
       const nextIdx = rep === 'all' && isLast ? 0 : idx + 1;
 
-      // repeat === 'off' at end of queue: stop
       if (rep === 'off' && isLast) return;
 
       setCurrentIndex(nextIdx);
@@ -129,38 +129,30 @@ export function usePlayer(): PlayerState {
   // Public actions
   // ---------------------------------------------------------------------------
   function play(track: Track, incomingQueue: Track[]) {
-    const idx = incomingQueue.findIndex((t) => t.id === track.id);
+    const idx = incomingQueue.findIndex(t => t.id === track.id);
     const newQueue = idx !== -1 ? incomingQueue : [track];
     const newIdx = idx !== -1 ? idx : 0;
     setQueue(newQueue);
     setCurrentIndex(newIdx);
     setPosition(0);
 
-    Player.load({
-      productType: 'track',
-      productId: track.id,
-      sourceId: 'search',
-      sourceType: 'SEARCH',
-    })
+    Player.load({ productType: 'track', productId: track.id, sourceId: 'search', sourceType: 'SEARCH' })
       .then(() => Player.play())
       .catch(console.error);
   }
 
   function togglePlayPause() {
     if (currentIndex === -1) return;
-    if (isPlaying) {
-      Player.pause();
-    } else {
-      Player.play().catch(console.error);
-    }
+    if (isPlaying) Player.pause();
+    else Player.play().catch(console.error);
   }
 
   function toggleShuffle() {
-    setShuffle((prev) => !prev);
+    setShuffle(prev => !prev);
   }
 
   function cycleRepeat() {
-    setRepeat((prev) => {
+    setRepeat(prev => {
       if (prev === 'off') return 'all';
       if (prev === 'all') return 'one';
       return 'off';
@@ -197,6 +189,22 @@ export function usePlayer(): PlayerState {
       .catch(console.error);
   }
 
+  // Insert a track immediately after the current position (queue button).
+  function injectAfterCurrent(track: Track) {
+    setQueue(prev => {
+      const idx = currentIndexRef.current;
+      return [...prev.slice(0, idx + 1), track, ...prev.slice(idx + 1)];
+    });
+  }
+
+  // Replace all tracks after the current position (clear / remove from context).
+  function replaceUpcoming(tracks: Track[]) {
+    setQueue(prev => {
+      const idx = currentIndexRef.current;
+      return [...prev.slice(0, idx + 1), ...tracks];
+    });
+  }
+
   return {
     currentTrack,
     isPlaying,
@@ -210,5 +218,7 @@ export function usePlayer(): PlayerState {
     seek,
     playPrevious,
     playNext,
+    injectAfterCurrent,
+    replaceUpcoming,
   };
 }

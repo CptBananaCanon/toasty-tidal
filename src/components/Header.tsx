@@ -1,5 +1,5 @@
 import { getCurrentWindow } from '@tauri-apps/api/window';
-import { AuthButton } from '../features/auth/AuthButton';
+import { ProfileMenu } from './ProfileMenu';
 import { AuthState } from '../features/auth/useAuth';
 import { SearchInput } from '../features/search/SearchInput';
 import { WindowControls } from './WindowControls';
@@ -8,6 +8,7 @@ interface Props {
   auth: AuthState;
   query: string;
   onQueryChange: (value: string) => void;
+  onOpenSettings: () => void;
 }
 
 function handleDragRegionMouseDown(e: React.MouseEvent) {
@@ -34,7 +35,7 @@ function handleDragRegionMouseDown(e: React.MouseEvent) {
   document.addEventListener('mouseup', cleanup);
 }
 
-export function Header({ auth, query, onQueryChange }: Props) {
+export function Header({ auth, query, onQueryChange, onOpenSettings }: Props) {
   return (
     <header className="header" onMouseDown={handleDragRegionMouseDown}>
       <span className="header__logo">TOASTY</span>
@@ -42,12 +43,7 @@ export function Header({ auth, query, onQueryChange }: Props) {
         <SearchInput value={query} onChange={onQueryChange} />
       </div>
       <div className="header__right">
-        <AuthButton
-          status={auth.status}
-          error={auth.error}
-          onSignIn={auth.signIn}
-          onSignOut={auth.signOut}
-        />
+        <ProfileMenu auth={auth} onOpenSettings={onOpenSettings} />
         <WindowControls />
       </div>
     </header>

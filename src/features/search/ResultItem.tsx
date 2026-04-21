@@ -1,3 +1,4 @@
+import { ListPlus } from 'lucide-react';
 import { Track, Album, Playlist, SearchResultItem } from '../../types';
 
 function formatDuration(seconds: number): string {
@@ -10,33 +11,59 @@ function formatCount(n: number): string {
   return n === 1 ? '1 track' : `${n} tracks`;
 }
 
-function ArtThumbnail({ url, alt }: { url?: string; alt: string }) {
-  return url
-    ? <img className="result-item__art-img" src={url} alt={alt} />
-    : <div className="result-item__art-placeholder" />;
+function ArtThumbnail({ url, alt, isPlaying }: { url?: string; alt: string; isPlaying?: boolean }) {
+  return (
+    <div className="result-item__art-wrap">
+      {url
+        ? <img className="result-item__art-img" src={url} alt={alt} />
+        : <div className="result-item__art-placeholder" />}
+      {isPlaying && (
+        <div className="result-item__playing-overlay" aria-label="Now playing">
+          <span className="playing-bars">
+            <span className="playing-bars__bar" />
+            <span className="playing-bars__bar" />
+            <span className="playing-bars__bar" />
+          </span>
+        </div>
+      )}
+    </div>
+  );
 }
 
 interface Props {
   item: SearchResultItem;
   isSelected: boolean;
+  isNowPlaying?: boolean;
   onSelect: (track: Track) => void;
+  onAddToQueue?: (track: Track) => void;
 }
 
-function TrackRow({ track, isSelected, onSelect }: {
+function TrackRow({ track, isSelected, isNowPlaying, onSelect, onAddToQueue }: {
   track: Track;
   isSelected: boolean;
+  isNowPlaying?: boolean;
   onSelect: (track: Track) => void;
+  onAddToQueue?: (track: Track) => void;
 }) {
   return (
     <li
-      className={`result-item${isSelected ? ' result-item--selected' : ''}`}
+      className={`result-item${isSelected ? ' result-item--selected' : ''}${isNowPlaying ? ' result-item--playing' : ''}`}
       onClick={() => onSelect(track)}
     >
-      <ArtThumbnail url={track.coverUrl} alt={track.album} />
+      <ArtThumbnail url={track.coverUrl} alt={track.album} isPlaying={isNowPlaying} />
       <div className="result-item__title">{track.title}</div>
       <div className="result-item__artist">{track.artist.name}</div>
       <div className="result-item__album">{track.album}</div>
       <div className="result-item__duration">{formatDuration(track.duration)}</div>
+      {onAddToQueue && (
+        <button
+          className="result-item__queue-btn"
+          title="Add to queue"
+          onClick={(e) => { e.stopPropagation(); onAddToQueue(track); }}
+        >
+          <ListPlus size={16} />
+        </button>
+      )}
     </li>
   );
 }
@@ -65,8 +92,18 @@ function PlaylistRow({ playlist }: { playlist: Playlist }) {
   );
 }
 
-export function ResultItem({ item, isSelected, onSelect }: Props) {
-  if (item.kind === 'track')    return <TrackRow track={item.data} isSelected={isSelected} onSelect={onSelect} />;
-  if (item.kind === 'album')    return <AlbumRow album={item.data} />;
+export function ResultItem({ item, isSelected, isNowPlaying, onSelect, onAddToQueue }: Props) {
+  if (item.kind === 'track') {
+    return (
+      <TrackRow
+        track={item.data}
+        isSelected={isSelected}
+        isNowPlaying={isNowPlaying}
+        onSelect={onSelect}
+        onAddToQueue={onAddToQueue}
+      />
+    );
+  }
+  if (item.kind === 'album') return <AlbumRow album={item.data} />;
   return <PlaylistRow playlist={item.data} />;
 }

@@ -21,7 +21,9 @@ interface Props {
   error: string | null;
   source: SearchSource | null;
   selectedId: string | null;
+  playingId: string | null;
   onSelect: (track: Track) => void;
+  onAddToQueue?: (track: Track) => void;
 }
 
 export function SearchResults({
@@ -31,7 +33,9 @@ export function SearchResults({
   error,
   source,
   selectedId,
+  playingId,
   onSelect,
+  onAddToQueue,
 }: Props) {
   const [filter, setFilter] = useState<SearchFilter>('all');
 
@@ -73,7 +77,6 @@ export function SearchResults({
         </p>
       )}
 
-      {/* Filter buttons */}
       <div className="flex gap-2 mb-3">
         {(Object.keys(FILTER_LABELS) as SearchFilter[]).map((f) => (
           <Button
@@ -100,7 +103,9 @@ export function SearchResults({
               key={`${item.kind}:${item.data.id}`}
               item={item}
               isSelected={item.kind === 'track' && item.data.id === selectedId}
+              isNowPlaying={item.kind === 'track' && item.data.id === playingId}
               onSelect={onSelect}
+              onAddToQueue={item.kind === 'track' ? onAddToQueue : undefined}
             />
           ))}
         </ul>
