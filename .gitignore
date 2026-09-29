@@ -28,3 +28,11 @@ pnpm-debug.log*
 # OS files
 .DS_Store
 Thumbs.db
+
+# Claude Code — per-machine settings and loop state
+.claude/settings.local.json
+.claude/state/
+
+# Throwaway spikes build output
+spikes/**/target/
+spikes/**/node_modules/

@@ -1,124 +1,29 @@
+# Toasty
 
-# TOASTY 🎵
+A private desktop music player for Linux: local files, TIDAL and Spotify in one player,
+one queue, one library. Tauri v2 + React + TypeScript + Rust.
 
-> A TIDAL desktop client that doesn't look like it was built in 2009.
+A private hobby project — not distributed, not affiliated with TIDAL or Spotify.
 
-Built with Tauri v2 + React + TypeScript. Runs natively on Linux. No Electron, no browser tab, no compromise.
+**Status:** being rebuilt from a prototype. See `docs/ROADMAP.md` and
+`docs/CURRENT_PHASE.md`.
 
----
+## Run it
 
-## What it does
-
-**Search** your entire TIDAL catalog — tracks, albums, and playlists — with instant filter switching between result types.
-
-**Play** real TIDAL audio using the official `@tidal-music/player` SDK. Full lossless streaming, the same stack TIDAL uses.
-
-**Control** everything from a sleek custom player bar: play/pause, skip, shuffle, repeat, scrubber, and a volume popup. Cover art pulled live from the API.
-
-**Look good doing it.** Custom window chrome, no OS title bar, dark theme with a pink accent that hits different.
-
----
-
-## Screenshots
-
-<img width="100%" alt="TOASTY-player2" src="https://github.com/user-attachments/assets/c72d2bc8-d1ec-4971-90de-c027de8c0015" />
-
----
-
-## Features
-
-- 🔐 **TIDAL OAuth 2.0** — full PKCE flow with deep-link callback, no secrets in the frontend
-- 🔍 **Search** tracks, albums, and playlists with per-type filters
-- 🖼️ **Cover art** in both search results and the player bar, resolved via the TIDAL v2 JSON:API
-- ▶️ **Real audio playback** — actual lossless TIDAL streaming, not mocked
-- ⏭️ **Full transport controls** — play/pause toggle, previous/next, shuffle, repeat (off/all/one)
-- ⏱️ **Progress scrubber** with live time display and seek support
-- 🔊 **Volume control** with a popup vertical slider
-- 🪟 **Borderless window** — custom drag region, custom close/minimise/maximise buttons
-- 🎨 **Dark retrowave UI** — Tailwind CSS + shadcn/ui, Audiowide logo font, `#F249E7` accent
-
----
-
-## Tech stack
-
-| Layer | Choice |
-|---|---|
-| Native shell | Tauri v2 (Rust) |
-| Frontend | React 18 + TypeScript + Vite |
-| UI components | shadcn/ui + Tailwind CSS v4 |
-| TIDAL auth | `@tidal-music/auth` (official SDK) |
-| TIDAL playback | `@tidal-music/player` (official SDK) |
-| TIDAL events | `@tidal-music/event-producer` (official SDK) |
-| TIDAL catalog | TIDAL OpenAPI v2 (JSON:API) |
-| Icons | lucide-react |
-
----
-
-## Getting started
-
-### Prerequisites
-
-- [Rust](https://rustup.rs/) (stable)
-- [Node.js](https://nodejs.org/) 20+
-- A TIDAL developer account and app at [developer.tidal.com](https://developer.tidal.com)
-- GStreamer (for audio on Linux):
+Prerequisites: Rust (stable), Node.js 20+, GStreamer (`gstreamer1.0-plugins-good`,
+`-bad`, `gstreamer1.0-libav`).
 
 ```bash
-sudo apt install gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-libav
-```
-
-### Setup
-
-```bash
-git clone https://github.com/your-username/tidal-tauri-client
-cd tidal-tauri-client
 npm install
-```
-
-Create a `.env` file in the project root:
-
-```env
-VITE_TIDAL_CLIENT_ID=your_client_id_here
-```
-
-Register `toasty-tidal://callback` as a redirect URI in your TIDAL developer app settings.
-
-### Run in development
-
-```bash
+cp .env.example .env.local   # fill in provider client IDs
 npm run tauri dev
 ```
 
-### Build for production
+`npm run check` verifies the build; `npm run tauri build` produces `.deb`/`.rpm`.
 
-```bash
-npm run tauri build
-```
+## Docs
 
-Outputs `.deb` and `.rpm` packages under `src-tauri/target/release/bundle/`.
-
----
-
-## Project structure
-
-```
-src/
-├── app/            # App root, CSS, entry point
-├── components/     # Shared UI (Header, WindowControls, shadcn/ui)
-├── features/
-│   ├── auth/       # TIDAL OAuth flow
-│   ├── player/     # Player bar, controls, usePlayer hook
-│   └── search/     # Search input, results, result items
-├── lib/            # tidalApi.ts, tidalPlayer.ts, utils
-└── types/          # Shared TypeScript types
-```
-
----
-
-## Notes
-
-- **Linux only** — tested on Pop!_OS / Ubuntu with X11 and Wayland
-- **Dev mode CORS** — the Vite dev server proxies TIDAL audio CDN requests locally to work around the `localhost` origin restriction; production builds are unaffected
-- **No client secret in the frontend** — ever. The PKCE flow requires only the client ID
-
----
+- `CLAUDE.md` — how the code works and the rules for working in it
+- `docs/VISION.md`, `docs/ROADMAP.md`, `docs/CURRENT_PHASE.md`
+- `docs/WORKFLOW.md` — how phases are planned and built with Claude Code
+- `docs/decisions/`, `docs/research/`
