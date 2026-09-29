@@ -10,6 +10,8 @@ export interface Track {
   album: string;
   duration: number; // seconds
   coverUrl?: string;
+  source: 'tidal' | 'local';
+  localPath?: string; // only present when source === 'local'
 }
 
 export interface Album {

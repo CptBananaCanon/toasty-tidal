@@ -4,6 +4,14 @@ interface Props {
 }
 
 export function SearchInput({ value, onChange }: Props) {
+  function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === 'Escape' && value !== '') {
+      e.preventDefault();
+      onChange('');
+      e.currentTarget.blur();
+    }
+  }
+
   return (
     <div className="search-input-wrapper">
       <input
@@ -11,6 +19,7 @@ export function SearchInput({ value, onChange }: Props) {
         type="search"
         value={value}
         onChange={(e) => onChange(e.target.value)}
+        onKeyDown={handleKeyDown}
         placeholder="Search tracks, artists, albums…"
         autoFocus
       />

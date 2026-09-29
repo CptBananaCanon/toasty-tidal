@@ -7,6 +7,7 @@ export const mockTracks: Track[] = [
     artist: { id: 'a1', name: 'Bicep' },
     album: 'Isles',
     duration: 344,
+    source: 'tidal',
   },
   {
     id: '2',
@@ -14,6 +15,7 @@ export const mockTracks: Track[] = [
     artist: { id: 'a1', name: 'Bicep' },
     album: 'Bicep',
     duration: 397,
+    source: 'tidal',
   },
   {
     id: '3',
@@ -21,6 +23,7 @@ export const mockTracks: Track[] = [
     artist: { id: 'a2', name: 'Bonobo' },
     album: 'The North Borders',
     duration: 282,
+    source: 'tidal',
   },
   {
     id: '4',
@@ -28,6 +31,7 @@ export const mockTracks: Track[] = [
     artist: { id: 'a2', name: 'Bonobo' },
     album: 'Black Sands',
     duration: 376,
+    source: 'tidal',
   },
   {
     id: '5',
@@ -35,6 +39,7 @@ export const mockTracks: Track[] = [
     artist: { id: 'a3', name: 'Kavinsky' },
     album: 'Outrun',
     duration: 254,
+    source: 'tidal',
   },
   {
     id: '6',
@@ -42,6 +47,7 @@ export const mockTracks: Track[] = [
     artist: { id: 'a4', name: 'Carpenter Brut' },
     album: 'Trilogy',
     duration: 307,
+    source: 'tidal',
   },
   {
     id: '7',
@@ -49,6 +55,7 @@ export const mockTracks: Track[] = [
     artist: { id: 'a5', name: 'HOME' },
     album: 'Odyssey',
     duration: 214,
+    source: 'tidal',
   },
   {
     id: '8',
@@ -56,5 +63,6 @@ export const mockTracks: Track[] = [
     artist: { id: 'a6', name: 'M83' },
     album: 'Hurry Up, We\'re Dreaming',
     duration: 509,
+    source: 'tidal',
   },
 ];

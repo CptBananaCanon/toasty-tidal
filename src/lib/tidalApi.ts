@@ -218,6 +218,7 @@ function mapTrack(
     album: albumResource?.attributes?.title ?? '',
     duration: parseDuration(a.duration),
     coverUrl: artworkUrl(artwork),
+    source: 'tidal',
   };
 }
 

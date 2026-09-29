@@ -1,6 +1,8 @@
 use tauri::Emitter;
 use std::io::{Read, Write};
 use std::net::TcpListener;
+use std::path::Path;
+use serde::Serialize;
 
 const LOOPBACK_PORT: u16 = 8898;
 
@@ -80,10 +82,58 @@ fn start_loopback_listener(app: tauri::AppHandle) -> Result<(), String> {
     Ok(())
 }
 
+#[derive(Serialize)]
+pub struct LocalFileInfo {
+    pub name: String,
+    pub path: String,
+}
+
+const AUDIO_EXTENSIONS: &[&str] = &["mp3", "flac", "ogg", "wav", "m4a"];
+
+/// Scan a directory and return audio files as name + full path pairs.
+/// Returns an empty list (not an error) if the directory doesn't exist.
+#[tauri::command]
+fn scan_local_folder(path: String) -> Result<Vec<LocalFileInfo>, String> {
+    let dir = std::fs::read_dir(&path).map_err(|e| format!("Cannot read {path}: {e}"))?;
+
+    let mut files: Vec<LocalFileInfo> = Vec::new();
+    for entry in dir {
+        let entry = match entry {
+            Ok(e) => e,
+            Err(_) => continue,
+        };
+        let entry_path = entry.path();
+        if !entry_path.is_file() {
+            continue;
+        }
+        let ext = entry_path
+            .extension()
+            .and_then(|e| e.to_str())
+            .map(|e| e.to_lowercase());
+        if !ext.as_deref().map_or(false, |e| AUDIO_EXTENSIONS.contains(&e)) {
+            continue;
+        }
+        let full_path = entry_path
+            .to_str()
+            .ok_or_else(|| "Non-UTF-8 path".to_string())?
+            .to_string();
+        let stem = Path::new(&full_path)
+            .file_stem()
+            .and_then(|s| s.to_str())
+            .unwrap_or("Unknown")
+            .to_string();
+        files.push(LocalFileInfo { name: stem, path: full_path });
+    }
+
+    files.sort_by(|a, b| a.name.cmp(&b.name));
+    Ok(files)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![start_loopback_listener])
+        .invoke_handler(tauri::generate_handler![start_loopback_listener, scan_local_folder])
+        .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_shell::init())
         // single-instance must be registered before deep-link so that on
         // Windows/Linux the second process hands its URL to this instance
